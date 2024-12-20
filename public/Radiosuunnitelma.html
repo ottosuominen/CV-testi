@@ -1,0 +1,3450 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Radiosuunnitelma</title>
+    
+
+    <style>
+
+      /* CSS koodi */ 
+      body { 
+          margin: 0;   
+          padding: 0;   
+          overflow: hidden; /* Hide any scrollbars */   
+          display: flex;    
+          justify-content: center; /* Center horizontally */     
+          align-items: center; /* Center vertically */     
+          height: 100vh; /* Set the height to 100% of the viewport height */
+          background-color: black; /* Set background color for the page */
+        }
+
+        #map-container {
+          width: 100%; /* Set the width to 100% of the viewport width */
+          height: 100vh; /* Set the height to 100% of the viewport height */
+          position: relative; /* Add position relative to create a stacking context */
+          background-color: black; /* Set background color for the container */
+        }
+
+        #map {
+          width: 100%; /* Make the map fill the container */
+          height: 100%; /* Make the map fill the container */
+        }
+
+        /* Material Icons googlelta */
+        .material-icons {
+          font-family: 'Material Icons';    
+          font-weight: normal;    
+          font-style: normal;     
+          font-size: 24px;    
+          display: inline-block;     
+          line-height: 1;     
+          text-transform: none;      
+          letter-spacing: normal;      
+          word-wrap: normal;     
+          white-space: nowrap;   
+          direction: ltr;
+
+          /* Support for all WebKit browsers. */
+          -webkit-font-smoothing: antialiased;
+
+          /* Support for Safari and Chrome. */
+          text-rendering: optimizeLegibility;
+
+          /* Support for Firefox. */
+          -moz-osx-font-smoothing: grayscale;
+
+          /* Support for IE. */
+          font-feature-settings: 'liga';
+        }
+
+        .custom-popup .leaflet-popup-content {
+          max-height: 200px; /* Maksimikorkeus */
+          width: 150px; /* Leveys */
+          overflow-y: auto; /* Vierityspalkki, jos sisältö ylittää maksimikorkeuden */
+          font-size: 10px; /* Pienempi fonttikoko */
+        }
+
+      .target-marker {
+        background-color: yellow; /* Korostusväri */
+        padding: 5px; /* Pientä paddingia visuaalisuuden parantamiseksi */
+      }
+
+      .target-text {
+        background-color: yellow; /* Pehmeämpi korostus */
+        padding: 2px;
+      }
+
+      .highlighted-text {
+        color: #ff0000; /* Punainen väri */
+        font-weight: bold; /* Lihavointi */
+      }
+
+        /* Material icons kuvakkeet googlelta */
+        .md-24 { font-size: 24px; }
+        .md-dark { color: rgba(0, 0, 0, 0.54); }
+        .md-dark.md-inactive { color: rgba(0, 0, 0, 0.26); }
+        .md-light { color: rgba(255, 255, 255, 1); }
+        .md-light.md-inactive { color: rgba(255, 255, 255, 0.3); }
+
+      /* Pienennä valintapainiketta */
+      .leaflet-control-layers {
+        width: 24px;
+        height: 24px;
+        overflow: hidden;
+        background-color: #fff; /* Valkoinen tausta */
+        transition: width 0.3s, height 0.3s;
+        position: relative; /* Tarvitaan pseudo-elementin sijoittelua varten */
+      }
+
+      /* Lisää rattaan ikoni pseudo-elementtinä ja siirrä se oikealle */
+      .leaflet-control-layers::before {
+        content: '';
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 24px;
+        height: 24px;
+        background: url('settings_FILL1_wght400_GRAD0_opsz24.svg') no-repeat center center;
+        background-size: 24px 24px;
+      }
+
+      /* Laajenna valintapainiketta hover-tilassa */
+      .leaflet-control-layers:hover {
+        width: auto; /* Laajennettu leveys */
+        height: auto;
+      }
+
+      /* Piilota ikoni hover-tilassa */
+      .leaflet-control-layers:hover::before {
+        opacity: 0; /* Piilota ikoni */
+      }
+
+      /* Piilota teksti oletustilassa */
+      .leaflet-control-layers span {
+        display: none;
+      }
+
+      /* Näytä teksti hover-tilassa */
+      .leaflet-control-layers:hover span {
+        display: inline;
+      }
+
+      /* Säädä karttatasojen listan ulkoasua */
+      .leaflet-control-layers-expanded {
+        background-color: #fff; /* Valkoinen tausta */
+      }
+
+ </style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-search@latest/dist/leaflet-search.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<link rel="stylesheet" href="style.css" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-search@latest/dist/leaflet-search.min.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet-omnivore/leaflet-omnivore.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier-Leaflet/0.2.6/oms.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="StreetViewButtons.js"></script>
+
+</head>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<body>
+  <div id="map"></div>
+    <script>
+
+var MASTERIT = {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 22342,
+          "Tyyppi": "DynamicMaster",
+          "marker-color": "violet"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0403630884561,
+            60.8404720603986
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12200,
+          "Tyyppi": "DynamicMaster",
+          "marker-color": "violet"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0404732528592,
+            60.8347943542272
+          ]
+        }
+      }
+    ]
+  }
+
+  var P2P = {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 9519,
+          "Tyyppi": "P2P",
+          "marker-color": "black"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            22.9406347049721,
+            60.9315475755673
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 6380,
+          "Tyyppi": "P2P",
+          "marker-color": "black"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            22.7496468726504,
+            61.0311287865522
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 21540,
+          "Tyyppi": "P2P",
+          "marker-color": "black"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.3424627897286,
+            60.7274217761667
+          ]
+        }
+      }
+    ]
+  }
+
+  var SLAVET = {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24420,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0398547439158,
+            60.8419287648618
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12385,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12395,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12386,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12387,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12388,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12389,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12390,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12391,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12392,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12393,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12394,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12396,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12397,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12398,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24790,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365845890305,
+            60.8415661069824
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24791,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365845890305,
+            60.8415661069824
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24788,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365845890305,
+            60.8415661069824
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24789,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365845890305,
+            60.8415661069824
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24984,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365474437435,
+            60.8415784224203
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24985,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365474437435,
+            60.8415784224203
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24986,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365474437435,
+            60.8415784224203
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23865,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23867,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23771,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23866,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23772,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23773,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23774,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23868,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13493,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0447906196286,
+            60.8413267358824
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13494,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0447906196286,
+            60.8413267358824
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24259,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0378721726767,
+            60.8419271809137
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24262,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0378721726767,
+            60.8419271809137
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24263,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0378721726767,
+            60.8419271809137
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24735,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0397226847067,
+            60.8415490664565
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24740,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0397226847067,
+            60.8415490664565
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24738,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0397226847067,
+            60.8415490664565
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24419,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0398547439158,
+            60.8419287648618
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13426,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0437848480899,
+            60.8408887803588
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13428,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0437848480899,
+            60.8408887803588
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24734,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0397226847067,
+            60.8415490664565
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25255,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0400589097481,
+            60.8406396120106
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25128,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0395004342734,
+            60.8407433324063
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25129,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0395004342734,
+            60.8407433324063
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25130,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0395004342734,
+            60.8407433324063
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25132,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0395004342734,
+            60.8407433324063
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25133,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0395004342734,
+            60.8407433324063
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24964,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24909,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24910,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24912,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24913,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24914,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24915,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24916,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24962,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24963,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24917,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 20048002,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0389467152043,
+            60.8417894614029
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 20048001,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0389467152043,
+            60.8417894614029
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13425,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0437848480899,
+            60.8408887803588
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13423,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0437848480899,
+            60.8408887803588
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24960,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24961,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13429,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0437848480899,
+            60.8408887803588
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24911,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383521313538,
+            60.8424798670734
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13462,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0441498875997,
+            60.8411049553031
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13467,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0441498875997,
+            60.8411049553031
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13316,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0437033529216,
+            60.8354923217945
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13287,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0405854726481,
+            60.8375523255836
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25918,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0419918333732,
+            60.8381188400801
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13302,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0420933882945,
+            60.8358326929871
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13326,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0447682079553,
+            60.8336994906433
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13328,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0451520435637,
+            60.8335281017466
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13298,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0420322700778,
+            60.8327142737854
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12188,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0386448432984,
+            60.8326146800069
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13293,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0416971384261,
+            60.8324857314218
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13301,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0419753601514,
+            60.8347386540558
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13323,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0441054974811,
+            60.8380818107628
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13322,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0438768530714,
+            60.8378398733715
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13498,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0452214059614,
+            60.8393149213609
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13503,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0454337279455,
+            60.8395610046506
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13324,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.044313336326,
+            60.8383116550796
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12384,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0375968702708,
+            60.8411730672791
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24623,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365845890305,
+            60.8415661069824
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13391,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0415796342996,
+            60.8403399122786
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12361,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0365283069007,
+            60.8410763820681
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12376,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0368989423286,
+            60.8405308260541
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23770,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0435016572624,
+            60.8404676946014
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12366,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0368044131036,
+            60.8402712430256
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12377,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0372061843894,
+            60.8407322528106
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12359,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0362173155305,
+            60.8406910810765
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12378,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0372601473377,
+            60.8408744854916
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12365,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0364593208635,
+            60.8401076307581
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12346,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0359626423237,
+            60.8402647875592
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12410,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383331569679,
+            60.8399290179797
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23105,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0363128743808,
+            60.8395309671866
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12187,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0382103986005,
+            60.8381384686403
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12383,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0374772165131,
+            60.8398941605557
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25092,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0377560253342,
+            60.8388155517992
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12402,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0380846357304,
+            60.8402413644657
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 24574,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0374688060537,
+            60.8378495551424
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12196,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0390950980337,
+            60.838317147688
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12432,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0393398557368,
+            60.8386186657759
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 25566,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0398257120057,
+            60.8393506802986
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13415,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0432446445315,
+            60.839764807229
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12326,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0352291065373,
+            60.8386986921528
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13393,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0421519211819,
+            60.8405127360498
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12411,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0384500748291,
+            60.8406891260918
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13407,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.042796719208,
+            60.8399824141032
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13450,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0437687971938,
+            60.8400719180182
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12409,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0381809796805,
+            60.8397304448116
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12401,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0379734976836,
+            60.8400251515834
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12413,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0385710852972,
+            60.8402125367127
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12193,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0389047356579,
+            60.8380429351132
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23169,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0383101792381,
+            60.8384910123987
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12440,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0401788235945,
+            60.8403209691894
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12438,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0400116466924,
+            60.8401312599111
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13390,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0417288585139,
+            60.8399012073595
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12433,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0389563106905,
+            60.8396318982921
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23201,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0389838809941,
+            60.8342024381934
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13449,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0439953436779,
+            60.8386446888763
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13317,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0431742981013,
+            60.8370735745801
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13311,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0428034450874,
+            60.8365699413125
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13306,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0421802722465,
+            60.83600201748
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13296,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.041745903783,
+            60.836261002443
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13308,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0424628264199,
+            60.8362749432727
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13384,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0414183420514,
+            60.8395848641744
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23127,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0395092379773,
+            60.8360368248986
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13292,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0411999871081,
+            60.8374202930451
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13489,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0448426479958,
+            60.8389666233669
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13289,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0413036133134,
+            60.8355559803484
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13504,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.045159490572,
+            60.839936411762
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13406,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0427897963965,
+            60.8392390747554
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 22538,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0402140017848,
+            60.8380897478456
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13309,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0423579962898,
+            60.837191611511
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13304,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0422153341558,
+            60.8370416057548
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13286,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0408576612729,
+            60.8370624225013
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13297,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0414538828385,
+            60.8376626296326
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23248,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0402115148685,
+            60.8367777868556
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12202,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0402576025037,
+            60.8371126357226
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 22819,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0385963031575,
+            60.8370359708042
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12198,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0393325923211,
+            60.8375110723527
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23202,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0402005114118,
+            60.8343239100783
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 22535,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0407615328489,
+            60.838154191066
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23114,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0391051286806,
+            60.8370032359036
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 22536,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0402129478451,
+            60.8382690554838
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12201,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0401127113111,
+            60.8361488402002
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12191,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0386654877887,
+            60.8346198945633
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12356,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0360118841987,
+            60.8411617061033
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 23122,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0390137554903,
+            60.8348980312267
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12192,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0391119739836,
+            60.837631537471
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12203,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0406894063285,
+            60.8351908174847
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13290,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0414031487975,
+            60.8349356267437
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 12199,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0398849243934,
+            60.8378578746746
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13303,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.042265017877,
+            60.8367332241889
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13285,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0406800225194,
+            60.8353880289964
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13288,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0411956940708,
+            60.8346164246203
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13320,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0436414951999,
+            60.8384231794304
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13499,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0450803729417,
+            60.840738216696
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13505,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0452582562604,
+            60.8409405139022
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13490,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0445560496787,
+            60.8410522099705
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13410,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0427454392713,
+            60.84194403304
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13408,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0425477003212,
+            60.8415458972774
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13395,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0419155452543,
+            60.8411590436394
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "KP": 13399,
+          "Tyyppi": "DynamicSlave",
+          "marker-color": "blue"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.042448430804,
+            60.8411754211476
+          ]
+        }
+      }
+    ]
+  }
+    var CT = {
+    "type": "FeatureCollection",
+    "features": [
+    {
+        "type": "Feature",
+        "properties": {
+          "KP": 1234567,
+          "Tyyppi": "CT",
+          "marker-color": "yellow"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0397944706552,
+            60.8398909840446
+          ]
+        }
+      }
+    ]
+    
+  }
+
+  var VT = {
+    "type": "FeatureCollection",
+    "features": [
+    {
+        "type": "Feature",
+        "properties": {
+          "KP": 123456,
+          "Tyyppi": "VT",
+          "marker-color": "red"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            23.0378721726767,
+            60.8419271809137
+          ]
+        }
+      }
+    ]
+    
+  }
+
+
+
+
+  var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        minZoom: 8,
+        maxZoom: 19,
+        noWrap: true,
+        chunkedLoading: true,
+        attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'
+    });
+
+    var map = new L.Map('map', { layers: [osmLayer] }).setView(new L.LatLng(61, 22.5), 6);
+
+    var layerOsm = new L.TileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        subdomains: ['server', 'services'],
+        minZoom: 8,
+        maxZoom: 19,
+        noWrap: true,
+        chunkedLoading: true,
+        attribution: '<a href="https://www.arcgis.com/">ArcGIS</a>'
+    });
+
+    var layerOrtho = new L.TileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        subdomains: ['server', 'services'],
+        minZoom: 8,
+        maxZoom: 18,
+        noWrap: true,
+        chunkedLoading: true,
+        attribution: '<a href="https://www.arcgis.com/">ArcGIS</a>'
+    });
+
+    // Google Maps -kerrokset
+    var googleStreets = L.tileLayer('http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        chunkedLoading: true,
+        noWrap: true,
+        subdomains:['mt0','mt1','mt2','mt3']
+    });
+
+    var googleHybrid = L.tileLayer('http://{s}.google.com/vt?lyrs=s,h&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        chunkedLoading: true,
+        noWrap: true,
+        subdomains:['mt0','mt1','mt2','mt3']
+    });
+
+    var googleSat = L.tileLayer('http://{s}.google.com/vt?lyrs=s&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        chunkedLoading: true,
+        noWrap: true,
+        subdomains:['mt0','mt1','mt2','mt3']
+    });
+
+    // Luo karttatasojen hallintapainike
+    var baseLayers = {
+        "OpenStreet Streets": osmLayer,
+        "ArcGIS Terrain": layerOsm,
+        "Google Streets": googleStreets,
+        "Google Satellite": googleSat,
+        "Google Hybrid": googleHybrid
+    };
+
+    function isOrthoLayerActive() {
+        return map.hasLayer(googleSat) || map.hasLayer(googleHybrid) || map.hasLayer(layerOrtho);
+    }
+
+    function getCustomIconP2P() {
+        var color = isOrthoLayerActive() ? '#FFFFFF' : '#808080'; // Valkoinen, jos ortokuva on käytössä, muuten harmaa
+        return new L.divIcon({
+            className: 'custom-icon',
+            html: '<span class="material-icons md-24" style="color: ' + color + '; opacity: 0.85; filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.15));">location_pin</span>',
+            iconSize: [24, 24]
+        });
+    }
+
+    function getCustomIcon(color) {      
+        return new L.divIcon({       
+            className: 'custom-icon',         
+            html: '<span class="material-icons md-24" style="color: ' + color + '; opacity: 0.85; filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.15));">location_pin</span>',          
+            iconSize: [24, 24]         
+        });         
+    }
+
+    function findOverlappingMarkers(latlng, allLayers) {
+        var overlappingMarkers = [];
+        allLayers.eachLayer(function(layer) {
+            if (layer instanceof L.Marker && layer.getLatLng().equals(latlng)) {
+                overlappingMarkers.push(layer);
+            }
+        });
+        return overlappingMarkers;
+    }
+
+    // Funktio koordinaattien siirtämiseksi
+    function shiftCoordinates(coordinates) {
+        return [coordinates[0] + 0.00015, coordinates[1]];
+    }
+
+    // Funktio, joka ottaa GeoJSON-objektin ja palauttaa uuden siirretyillä koordinaateilla
+    function shiftGeoJSONLayer(layerData) {
+        return layerData.features.map(function (feature) {
+            if (feature.geometry.type === 'Point') {
+                var shiftedCoordinates = shiftCoordinates(feature.geometry.coordinates);
+                return {
+                    type: 'Feature',
+                    properties: feature.properties,
+                    geometry: {
+                        type: 'Point',
+                        coordinates: shiftedCoordinates
+                    }
+                };
+            }
+            return feature; // Palautetaan alkuperäinen feature, jos se ei ole Point-tyyppiä
+        });
+    }
+
+    // Siirrä CT, VT ja MASTERIT -kerrosten koordinaatteja
+    var shiftedCTCoordinates = shiftGeoJSONLayer(CT);
+    var shiftedVTCoordinates = shiftGeoJSONLayer(VT);
+    var shiftedMasteritCoordinates = shiftGeoJSONLayer(MASTERIT);
+    var openPopupTimeout;
+    var canOpenPopup = true;
+
+    var slavetLayer = L.geoJSON(SLAVET, {
+        onEachFeature: function (feature, layer) {
+            var markerColor = feature.properties['marker-color'];
+            var customIcon = getCustomIcon(markerColor);
+            layer.setIcon(customIcon);
+            layer.on('mouseover', function (e) {
+                clearTimeout(openPopupTimeout);  // Varmista, että aiempi ajastin on peruttu
+                openPopupTimeout = setTimeout(function () {
+                    if (canOpenPopup) {
+                        var overlappingMarkers = findOverlappingMarkers(layer.getLatLng(), slavetLayer);
+                        var popupContent = "";
+                        overlappingMarkers.forEach(function(marker) {
+                            for (var key in marker.feature.properties) {
+                                if (key !== 'marker-color' && marker.feature.properties.hasOwnProperty(key)) {
+                                    popupContent += key + ": " + marker.feature.properties[key] + "<br>";
+                                }
+                            }
+                            popupContent += "<hr>"; // Erotellaan päällekkäiset pisteet
+                        });
+                        if (popupContent !== "") {
+                            layer.bindPopup(popupContent, {
+                                className: 'custom-popup', // Määrittele custom CSS-luokka
+                                popupAnchor: [-100, -100], // Siirrä popup-ikkunaa vasemmalle ja ylös
+                                autoPan: false,
+                            }).openPopup();
+                        }
+                    }
+                }, 900); // 900 ms eli 0,9 sekuntia
+            });
+
+            layer.on('mouseout', function () {
+                clearTimeout(openPopupTimeout); // Perutaan ajastin, jos hiiri siirtyy pois markerin päältä
+                canOpenPopup = false;
+            });
+
+            layer.on('mousemove', function () {
+                canOpenPopup = true;
+            });
+        }
+    });
+
+    var ZoomLevel = 16;                
+    var markerCluster = L.markerClusterGroup({                    
+        chunkedLoading: true, // Enable chunked loading                      
+        showCoverageOnHover: true, // Disable showing the bounds of the cluster on hover                        
+        spiderfyOnMaxZoom: false, // Disable spiderfying at max zoom                     
+        disableClusteringAtZoom: ZoomLevel // Define the zoom level where clustering stops             
+    });
+    markerCluster.addLayer(slavetLayer);                                 
+    map.addLayer(markerCluster);
+
+    // Luo Leaflet-kerrokset siirretyistä koordinaateista
+    var ctLayer = L.geoJSON(shiftedCTCoordinates, {
+        onEachFeature: function (feature, layer) {
+            var markerColor = feature.properties['marker-color'];
+            var customIcon = getCustomIcon(markerColor);
+            layer.setIcon(customIcon);
+            layer.on('mouseover', function (e) {
+                clearTimeout(openPopupTimeout);  // Varmista, että aiempi ajastin on peruttu
+                openPopupTimeout = setTimeout(function () {
+                    if (canOpenPopup) {
+                        var overlappingMarkers = findOverlappingMarkers(layer.getLatLng(), ctLayer);
+                        var popupContent = "";
+                        overlappingMarkers.forEach(function(marker) {
+                            for (var key in marker.feature.properties) {
+                                if (key !== 'marker-color' && marker.feature.properties.hasOwnProperty(key)) {
+                                    popupContent += key + ": " + marker.feature.properties[key] + "<br>";
+                                }
+                            }
+                            popupContent += "<hr>"; // Erotellaan päällekkäiset pisteet
+                        });
+                        if (popupContent !== "") {
+                            layer.bindPopup(popupContent, {
+                                className: 'custom-popup', // Määrittele custom CSS-luokka
+                                popupAnchor: [-100, -100], // Siirrä popup-ikkunaa vasemmalle ja ylös
+                                autoPan: false,
+                            }).openPopup();
+                        }
+                    }
+                }, 900); // 900 ms eli 0,9 sekuntia
+            });
+
+            layer.on('mouseout', function () {
+                clearTimeout(openPopupTimeout); // Perutaan ajastin, jos hiiri siirtyy pois markerin päältä
+                canOpenPopup = false;
+            });
+
+            layer.on('mousemove', function () {
+                canOpenPopup = true;
+            });
+        }
+    }); map.addLayer(ctLayer);
+
+    var vtLayer = L.geoJSON(shiftedVTCoordinates, {
+        onEachFeature: function (feature, layer) {
+            var markerColor = feature.properties['marker-color'];
+            var customIcon = getCustomIcon(markerColor);
+            layer.setIcon(customIcon);
+            layer.on('mouseover', function (e) {
+                clearTimeout(openPopupTimeout);  // Varmista, että aiempi ajastin on peruttu
+                openPopupTimeout = setTimeout(function () {
+                    if (canOpenPopup) {
+                        var overlappingMarkers = findOverlappingMarkers(layer.getLatLng(), vtLayer);
+                        var popupContent = "";
+                        overlappingMarkers.forEach(function(marker) {
+                            for (var key in marker.feature.properties) {
+                                if (key !== 'marker-color' && marker.feature.properties.hasOwnProperty(key)) {
+                                    popupContent += key + ": " + marker.feature.properties[key] + "<br>";
+                                }
+                            }
+                            popupContent += "<hr>"; // Erotellaan päällekkäiset pisteet
+                        });
+                        if (popupContent !== "") {
+                            layer.bindPopup(popupContent, {
+                                className: 'custom-popup', // Määrittele custom CSS-luokka
+                                popupAnchor: [-100, -100], // Siirrä popup-ikkunaa vasemmalle ja ylös
+                                autoPan: false,
+                            }).openPopup();
+                        }
+                    }
+                }, 900); // 900 ms eli 0,9 sekuntia
+            });
+
+            layer.on('mouseout', function () {
+                clearTimeout(openPopupTimeout); // Perutaan ajastin, jos hiiri siirtyy pois markerin päältä
+                canOpenPopup = false;
+            });
+
+            layer.on('mousemove', function () {
+                canOpenPopup = true;
+            });
+        }
+    }); map.addLayer(vtLayer);
+
+    var masteritLayer = L.geoJSON(shiftedMasteritCoordinates, {
+        onEachFeature: function (feature, layer) {
+            var markerColor = feature.properties['marker-color'];
+            var customIcon = getCustomIcon(markerColor);
+            layer.setIcon(customIcon);
+            layer.on('mouseover', function (e) {
+                clearTimeout(openPopupTimeout);  // Varmista, että aiempi ajastin on peruttu
+                openPopupTimeout = setTimeout(function () {
+                    if (canOpenPopup) {
+                        var overlappingMarkers = findOverlappingMarkers(layer.getLatLng(), masteritLayer);
+                        var popupContent = "";
+                        overlappingMarkers.forEach(function(marker) {
+                            for (var key in marker.feature.properties) {
+                                if (key !== 'marker-color' && marker.feature.properties.hasOwnProperty(key)) {
+                                    popupContent += key + ": " + marker.feature.properties[key] + "<br>";
+                                }
+                            }
+                            popupContent += "<hr>"; // Erotellaan päällekkäiset pisteet
+                        });
+                        if (popupContent !== "") {
+                            layer.bindPopup(popupContent, {
+                                className: 'custom-popup', // Määrittele custom CSS-luokka
+                                popupAnchor: [-100, -100], // Siirrä popup-ikkunaa vasemmalle ja ylös
+                                autoPan: false,
+                            }).openPopup();
+                        }
+                    }
+                }, 900); // 900 ms eli 0,9 sekuntia
+            });
+
+            layer.on('mouseout', function () {
+                clearTimeout(openPopupTimeout); // Perutaan ajastin, jos hiiri siirtyy pois markerin päältä
+                canOpenPopup = false;
+            });
+
+            layer.on('mousemove', function () {
+                canOpenPopup = true;
+            });
+        }
+    }); map.addLayer(masteritLayer);
+
+    var p2pLayer = L.geoJSON(P2P, {
+        onEachFeature: function (feature, layer) {
+            var customIcon = getCustomIconP2P();
+            layer.setIcon(customIcon);
+            layer.on('mouseover', function (e) {
+                clearTimeout(openPopupTimeout);  // Varmista, että aiempi ajastin on peruttu
+                openPopupTimeout = setTimeout(function () {
+                    if (canOpenPopup) {
+                        var overlappingMarkers = findOverlappingMarkers(layer.getLatLng(), p2pLayer);
+                        var popupContent = "";
+                        overlappingMarkers.forEach(function(marker) {
+                            for (var key in marker.feature.properties) {
+                                if (key !== 'marker-color' && marker.feature.properties.hasOwnProperty(key)) {
+                                    popupContent += key + ": " + marker.feature.properties[key] + "<br>";
+                                }
+                            }
+                            popupContent += "<hr>"; // Erotellaan päällekkäiset pisteet
+                        });
+                        if (popupContent !== "") {
+                            layer.bindPopup(popupContent, {
+                                className: 'custom-popup', // Määrittele custom CSS-luokka
+                                popupAnchor: [-100, -100], // Siirrä popup-ikkunaa vasemmalle ja ylös
+                                autoPan: false,
+                            }).openPopup();
+                        }
+                    }
+                }, 900); // 900 ms eli 0,9 sekuntia
+            });
+            layer.on('mouseout', function () {
+                clearTimeout(openPopupTimeout); // Perutaan ajastin, jos hiiri siirtyy pois markerin päältä
+                canOpenPopup = false;
+            });
+            layer.on('mousemove', function () {
+                canOpenPopup = true;
+            });
+        }
+    });
+
+    // Luo uusi marker cluster ryhmä P2P-kerrokselle
+    var p2pCluster = L.markerClusterGroup({
+        chunkedLoading: true,
+        showCoverageOnHover: true,
+        spiderfyOnMaxZoom: false,
+        disableClusteringAtZoom: 1 // Määrittele zoom-taso, jolla clustering loppuu
+    });
+    p2pCluster.addLayer(p2pLayer);    
+    // Lisää P2P cluster karttaan
+    map.addLayer(p2pCluster);
+
+    var overlayLayers = {
+        "SLAVE": markerCluster,
+        "MASTER": masteritLayer,
+        "P2P": p2pCluster,
+        "CT": ctLayer,
+        "VT": vtLayer
+    };
+
+    // Luo karttatasojen hallintapainike ja lisää se ylös oikealle                
+    L.control.layers(baseLayers, overlayLayers, {                         
+        collapsed: false, position: 'topright' }).addTo(map);
+
+    // Tarkista ortokuvan käyttö ja päivitä P2P-kuvakkeet baselayerin vaihdon yhteydessä
+    map.on('baselayerchange', function() {
+        p2pLayer.eachLayer(function(layer) {
+            layer.setIcon(getCustomIconP2P());
+        });
+    });
+
+    // Luo hakuohjain yhdistetylle tasolle                   
+    var combinedLayer = new L.LayerGroup([markerCluster, vtLayer, ctLayer, masteritLayer, p2pLayer]);                
+    var searchControl = new L.Control.Search({                            
+        layer: combinedLayer,                          
+        chunkedLoading: true,                             
+        propertyName: 'KP',                            
+        zoom: 17,                          
+        initial: false               
+    });
+
+    // Lisää hakuohjain karttaan                    
+    map.addControl(searchControl);
+    searchControl.on('search:locationfound', function (e) {
+        if (e.layer && e.layer instanceof L.Marker) {
+            map.setView(e.layer.getLatLng(), 17, { animate: true });
+            setTimeout(function() {
+                var overlappingMarkers = findOverlappingMarkers(e.layer.getLatLng(), markerCluster, p2pLayer, ctLayer, vtLayer, masteritLayer);
+                var popupContent = "";
+                overlappingMarkers.forEach(function (marker) {
+                    var contentPart = "";
+                    for (var key in marker.feature.properties) {
+                        if (key !== 'marker-color' && marker.feature.properties.hasOwnProperty(key)) {
+                            var text = key + ": " + marker.feature.properties[key];
+                            if (marker === e.layer) {
+                                // Korostetaan vain tekstiä
+                                contentPart += '<span class="target-text">' + text + '</span><br>';
+                            } else {
+                                contentPart += text + "<br>";
+                            }
+                        }
+                    }
+                    popupContent += contentPart + "<hr>";
+                });
+                if (popupContent !== "") {
+                    var popup = e.layer.bindPopup(popupContent, {
+                        className: 'custom-popup',
+                        popupAnchor: [-100, -100],
+                        autoPan: false,
+                    });
+                    popup.on('popupopen', function() {
+                        var targetElement = document.querySelector('.target-text');
+                        if (targetElement) {
+                            targetElement.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                        }
+                    });
+                    e.layer.openPopup();
+                }
+            }, 300); // Viive
+        }
+    });
+
+    // Piirtotyökalu                  
+    var featureGroup = L.featureGroup().addTo(map);                 
+    var drawControl = new L.Control.Draw({                      
+        draw: {                     
+            polyline: {                             
+                shapeOptions: {                                  
+                    color: '#3388ff', // väri                                    
+                    weight: 5 // Linjan paksuus                             
+                },                          
+                icon: new L.DivIcon({ // Logo                                      
+                    className: 'custom-icon', // Googlen custom icon luokka css kansiosta                             
+                    html: '<span class="material-icons md-24" style="color: green;">location_pin</span>',                                     
+                    iconSize: [24, 24]                                  
+                })                              
+            },                               
+            polygon: false,                               
+            rectangle: false,              
+            circle: false,                 
+            marker: false,                  
+            circlemarker: false             
+        }              
+    });                 
+    drawControl.addTo(map);
+
+    L.StreetView = L.Control.extend({
+        options: {
+          google: true, // Pelkästään google käyttöön, napit poistuu samalla muista
+          bing: false,
+          yandex: false,
+          mapillary: false,
+          mapillaryId: null,
+          openstreetcam: false,
+          mosatlas: false
+        },
+
+        providers: [
+          ['google', 'GSV', 'Avaa katunäkymän haetulla KP:lla', false,
+            'https://www.google.com/maps?layer=c&cbll={lat},{lon}'],
+          ['bing', 'Bing', 'Bing StreetSide',
+            L.latLngBounds([[25, -168], [71.4, 8.8]]),
+            'https://www.bing.com/maps?cp={lat}~{lon}&lvl=19&style=x&v=2'],
+          ['yandex', 'ЯП', 'Yandex Panoramas',
+            L.latLngBounds([[35.6, 18.5], [72, 180]]),
+            'https://yandex.ru/maps/?panorama%5Bpoint%5D={lon},{lat}'],
+          ['mapillary', 'Mplr', 'Mapillary Photos', false,
+            'https://a.mapillary.com/v3/images?client_id={id}&closeto={lon},{lat}&lookat={lon},{lat}'],
+          ['openstreetcam', 'OSC', 'OpenStreetCam', false,
+            'lat={lat}&lng={lon}&distance=50'],
+          ['mosatlas', 'Мос', 'Панорамы из Атласа Москвы',
+            L.latLngBounds([[55.113, 36.708], [56.041, 38]]),
+            'http://atlas.mos.ru/?lang=ru&z=9&ll={lon}%2C{lat}&pp={lon}%2C{lat}'],
+        ],
+
+        onAdd: function(map) {
+          this._container = L.DomUtil.create('div', 'leaflet-bar');
+          this._buttons = [];
+
+          for (var i = 0; i < this.providers.length; i++)
+            this._addProvider(this.providers[i]);
+
+          map.on('moveend', function() {
+            if (!this._fixed)
+              this._update(map.getCenter());
+          }, this);
+          this._update(map.getCenter());
+          return this._container;
+        },
+
+        fixCoord: function(latlon) {
+          this._update(latlon);
+          this._fixed = true;
+        },
+
+        releaseCoord: function() {
+          this._fixed = false;
+          this._update(this._map.getCenter());
+        },
+
+        _addProvider: function(provider) {
+          if (!this.options[provider[0]])
+            return;
+          if (provider[0] == 'mapillary' && !this.options.mapillaryId)
+            return;
+          var button = L.DomUtil.create('a');
+          button.innerHTML = provider[1];
+          button.title = provider[2];
+          button._bounds = provider[3];
+          button._template = provider[4];
+          button.href = '#';
+          button.target = 'streetview';
+          button.style.padding = '0 8px';
+          button.style.width = 'auto';
+
+          // Some buttons require complex logic
+          if (provider[0] == 'mapillary') {
+            button._needUrl = false;
+            L.DomEvent.on(button, 'click', function(e) {
+              if (button._href) {
+                this._ajaxRequest(
+                  button._href.replace(/{id}/, this.options.mapillaryId),
+                  function(data) {
+                    if (data && data.features && data.features[0].properties) {
+                      var photoKey = data.features[0].properties.key,
+                          url = 'https://www.mapillary.com/map/im/{key}'.replace(/{key}/, photoKey);
+                      window.open(url, button.target);
+                    }
+                  }
+                );
+              }
+              return L.DomEvent.preventDefault(e);
+            }, this);
+          } else if (provider[0] == 'openstreetcam') {
+            button._needUrl = false;
+            L.DomEvent.on(button, 'click', function(e) {
+              if (button._href) {
+                this._ajaxRequest(
+                  'http://openstreetcam.org/nearby-tracks',
+                  function(data) {
+                    if (data && data.osv && data.osv.sequences) {
+                      var seq = data.osv.sequences[0],
+                          url = 'https://www.openstreetcam.org/details/'+seq.sequence_id+'/'+seq.sequence_index;
+                      window.open(url, button.target);
+                    }
+                  },
+                  button._href
+                );
+              }
+              return L.DomEvent.preventDefault(e);
+            }, this);
+          } else
+            button._needUrl = true;
+
+          // Overriding some of the leaflet styles
+          button.style.display = 'inline-block';
+          button.style.border = 'none';
+          button.style.borderRadius = '0 0 0 0';
+          this._buttons.push(button);
+        },
+
+        _update: function(center) {
+          if (!center)
+            return;
+          var last;
+          for (var i = 0; i < this._buttons.length; i++) {
+            var b = this._buttons[i],
+                show = !b._bounds || b._bounds.contains(center),
+                vis = this._container.contains(b);
+
+            if (show && !vis) {
+              ref = last ? last.nextSibling : this._container.firstChild;
+              this._container.insertBefore(b, ref);
+            } else if (!show && vis) {
+              this._container.removeChild(b);
+              return;
+            }
+            last = b;
+
+            var tmpl = b._template;
+            tmpl = tmpl
+              .replace(/{lon}/g, L.Util.formatNum(center.lng, 6))
+              .replace(/{lat}/g, L.Util.formatNum(center.lat, 6));
+            if (b._needUrl)
+              b.href = tmpl;
+            else
+              b._href = tmpl;
+          }
+        },
+
+        _ajaxRequest: function(url, callback, post_data) {
+          if (window.XMLHttpRequest === undefined)
+            return;
+          var req = new XMLHttpRequest();
+          req.open(post_data ? 'POST' : "GET", url);
+          if (post_data)
+            req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+          req.onreadystatechange = function() {
+            if (req.readyState === 4 && req.status == 200) {
+              var data = (JSON.parse(req.responseText));
+              callback(data);
+            }
+          };
+          req.send(post_data);
+        }
+    });
+
+    L.streetView = function(options) {
+        return new L.StreetView(options);
+    }
+
+    // Oletetaan, että 'map' on Leaflet-karttasi instanssi
+    var streetViewControl = L.streetView({
+        google: true,  // Ota käyttöön Google Street View
+    }).addTo(map);
+
+    var savedMapState = localStorage.getItem('mapState');             
+    if (savedMapState) {           
+        // Jos tallennettu tila löytyy, käytä sitä kartan tilana             
+        map.setView(JSON.parse(savedMapState).center, JSON.parse(savedMapState).zoom);              
+    }
+
+    // Tallenna karttatila aina kun kartta päivitetään                 
+    map.on('moveend', function() {                  
+        var mapState = {             
+            center: map.getCenter(),                 
+            zoom: map.getZoom()                
+        };                   
+        localStorage.setItem('mapState', JSON.stringify(mapState));                  
+    });
+
+    var edellinenZoomTaso = map.getZoom(); // Alustetaan edellinen zoomaustaso
+
+    map.on('zoomend', function() {
+        var nykyinenZoomTaso = map.getZoom(); // Päivitetään nykyinen zoomaustaso
+
+        // Tarkista, onko zoomaustaso siirtynyt alaspäin yli 16:n
+        if (edellinenZoomTaso >= 16 && nykyinenZoomTaso < 16) {
+            // Jos zoomaustaso on nyt alle 16 ja markerCluster on päällä, poista ja lisää se uudelleen
+            if (map.hasLayer(markerCluster)) {
+                map.removeLayer(markerCluster);
+                map.addLayer(markerCluster);
+            }
+        }
+        edellinenZoomTaso = nykyinenZoomTaso; // Päivitä edellinen zoomaustaso nykyiseksi
+    });
+</script>
+</body>
+</html>
